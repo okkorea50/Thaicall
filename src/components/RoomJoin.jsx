@@ -155,7 +155,7 @@ export default function RoomJoin({ onJoinRoom, onOpenSettings, myLang, setMyLang
           </span>
         </div>
         <h1 style={{ fontSize: '2.2rem', fontWeight: 800, letterSpacing: '-0.5px', marginBottom: '6px' }}>
-          Thaicall <span style={{ color: '#6366f1' }}>Live</span>
+          UniSub <span style={{ color: '#6366f1' }}>Live</span>
         </h1>
         <p style={{ fontSize: '0.88rem', color: 'var(--text-sub)' }}>
           {t.subdesc}
