@@ -86,12 +86,12 @@ export default function RoomJoin({ onJoinRoom, onOpenSettings, myLang, setMyLang
           <Globe2 size={15} style={{ display: 'inline', marginRight: '6px' }} />
           내 언어 선택 / Select Your Language
         </label>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
           <button
             type="button"
             className={`glass-button ${myLang === 'ko' ? 'primary' : ''}`}
             onClick={() => setMyLang('ko')}
-            style={{ padding: '12px' }}
+            style={{ padding: '12px 6px', fontSize: '0.85rem' }}
           >
             🇰🇷 한국어
           </button>
@@ -99,9 +99,17 @@ export default function RoomJoin({ onJoinRoom, onOpenSettings, myLang, setMyLang
             type="button"
             className={`glass-button ${myLang === 'th' ? 'primary' : ''}`}
             onClick={() => setMyLang('th')}
-            style={{ padding: '12px', fontFamily: 'var(--font-th)' }}
+            style={{ padding: '12px 6px', fontSize: '0.85rem', fontFamily: 'var(--font-th)' }}
           >
             🇹🇭 ภาษาไทย
+          </button>
+          <button
+            type="button"
+            className={`glass-button ${myLang === 'en' ? 'primary' : ''}`}
+            onClick={() => setMyLang('en')}
+            style={{ padding: '12px 6px', fontSize: '0.85rem' }}
+          >
+            🇺🇸 English
           </button>
         </div>
       </div>

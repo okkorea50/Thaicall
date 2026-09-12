@@ -1,15 +1,21 @@
 /**
- * Real-time High-Precision Translation Service (KR <-> TH)
- * Optimized for natural, polite conversational business dialogue
+ * Multi-Language High-Precision Translation Service (KR <-> TH <-> EN)
+ * Supports Korean, Thai, English
  */
 
 const translationCache = new Map();
 
+const LANG_NAMES = {
+  ko: 'Korean',
+  th: 'Thai',
+  en: 'English'
+};
+
 /**
- * Translate text between Korean (ko) and Thai (th)
+ * Translate text between selected languages
  * @param {string} text - Source text
- * @param {string} sourceLang - 'ko' or 'th'
- * @param {string} targetLang - 'th' or 'ko'
+ * @param {string} sourceLang - 'ko', 'th', 'en'
+ * @param {string} targetLang - 'ko', 'th', 'en'
  * @param {Object} options - { geminiApiKey, engine }
  * @returns {Promise<string>}
  */
@@ -29,7 +35,7 @@ export async function translateText(text, sourceLang, targetLang, options = {}) 
 
   try {
     if (engine === 'gemini' && geminiApiKey) {
-      translated = await translateWithGeminiHighQuality(cleanText, sourceLang, targetLang, geminiApiKey);
+      translated = await translateWithGeminiMultiLang(cleanText, sourceLang, targetLang, geminiApiKey);
     } else {
       translated = await translateWithGoogleFree(cleanText, sourceLang, targetLang);
     }
@@ -51,20 +57,25 @@ export async function translateText(text, sourceLang, targetLang, options = {}) 
 }
 
 /**
- * High-Precision Gemini AI Translator Prompt
+ * Multi-Language Gemini AI Translator Prompt
  */
-async function translateWithGeminiHighQuality(text, sourceLang, targetLang, apiKey) {
-  const isKrToTh = sourceLang === 'ko' && targetLang === 'th';
+async function translateWithGeminiMultiLang(text, sourceLang, targetLang, apiKey) {
+  const sourceName = LANG_NAMES[sourceLang] || sourceLang;
+  const targetName = LANG_NAMES[targetLang] || targetLang;
 
-  const systemInstruction = isKrToTh
-    ? `You are an expert real-time Korean-to-Thai translator for business video calls. 
-Translate the input Korean sentence into natural, fluent, and polite spoken Thai (using appropriate polite particles like ครับ/ค่ะ where natural). 
+  let styleGuide = '';
+  if (targetLang === 'th') {
+    styleGuide = 'Use polite particles like ครับ/ค่ะ where natural.';
+  } else if (targetLang === 'ko') {
+    styleGuide = 'Use polite, formal Korean (존댓말).';
+  } else if (targetLang === 'en') {
+    styleGuide = 'Use clear, natural, and polite conversational English.';
+  }
+
+  const systemInstruction = `You are an expert real-time ${sourceName}-to-${targetName} translator for video calls. 
+Translate the input ${sourceName} sentence into natural, fluent ${targetName}. ${styleGuide}
 Do NOT perform literal word-for-word translation. 
-Output ONLY the final translated Thai sentence without any quotes, explanations, or extra commentary.`
-    : `You are an expert real-time Thai-to-Korean translator for business video calls. 
-Translate the input Thai sentence into natural, fluent, polite Korean (존댓말). 
-Do NOT perform literal word-for-word translation. 
-Output ONLY the final translated Korean sentence without any quotes, explanations, or extra commentary.`;
+Output ONLY the final translated ${targetName} sentence without any quotes, explanations, or extra commentary.`;
 
   const prompt = `Input sentence: "${text}"\nTranslated text:`;
 
@@ -76,7 +87,7 @@ Output ONLY the final translated Korean sentence without any quotes, explanation
     body: JSON.stringify({
       contents: [{ parts: [{ text: `${systemInstruction}\n\n${prompt}` }] }],
       generationConfig: { 
-        temperature: 0.1, // Low temperature for high translation accuracy & consistency
+        temperature: 0.1,
         maxOutputTokens: 300 
       }
     })
@@ -87,7 +98,7 @@ Output ONLY the final translated Korean sentence without any quotes, explanation
   const data = await res.json();
   const output = data.candidates?.[0]?.content?.parts?.[0]?.text;
   if (output) {
-    return output.trim().replace(/^["']|["']$/g, ''); // Remove surrounding quotes if any
+    return output.trim().replace(/^["']|["']$/g, '');
   }
 
   throw new Error('Invalid response structure from Gemini API');

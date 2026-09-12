@@ -377,14 +377,14 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
             gap: '6px'
           }}>
             <Users size={14} />
-            <span>상대방 실시간 자막 (Partner Subtitle)</span>
+            <span>상대방 자막 (Partner Subtitle)</span>
             <span style={{
               background: 'rgba(99, 102, 241, 0.2)',
               padding: '2px 8px',
               borderRadius: '10px',
               fontSize: '0.7rem'
             }}>
-              {myLang === 'ko' ? '태국어 ➔ 한국어' : '한국어 ➔ 태국어'}
+              {(partnerLang === 'ko' ? '한국어' : partnerLang === 'th' ? '태국어' : '영어')} ➔ {(myLang === 'ko' ? '한국어' : myLang === 'th' ? '태국어' : '영어')}
             </span>
           </div>
 

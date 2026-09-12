@@ -48,7 +48,13 @@ function initAndStart() {
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = true;
-    recognition.lang = currentConfig?.lang || 'ko-KR';
+    
+    // Support language mapping (ko -> ko-KR, th -> th-TH, en -> en-US)
+    const rawLang = currentConfig?.lang || 'ko-KR';
+    if (rawLang === 'ko') recognition.lang = 'ko-KR';
+    else if (rawLang === 'th') recognition.lang = 'th-TH';
+    else if (rawLang === 'en') recognition.lang = 'en-US';
+    else recognition.lang = rawLang;
 
     let lastText = '';
 
