@@ -1,6 +1,6 @@
 /**
  * Multi-Language High-Precision Translation Service (KR <-> TH <-> EN)
- * Supports Korean, Thai, English
+ * Strict Zero-Hallucination Translation Engine
  */
 
 const translationCache = new Map();
@@ -35,9 +35,9 @@ export async function translateText(text, sourceLang, targetLang, options = {}) 
 
   try {
     if (engine === 'gemini' && geminiApiKey) {
-      translated = await translateWithGeminiMultiLang(cleanText, sourceLang, targetLang, geminiApiKey);
+      translated = await translateWithGeminiStrict(cleanText, sourceLang, targetLang, geminiApiKey);
     } else {
-      translated = await translateWithGoogleFree(cleanText, sourceLang, targetLang);
+      translated = await translateWithGoogleFreeStrict(cleanText, sourceLang, targetLang);
     }
   } catch (err) {
     console.warn('[Translate] Primary engine failed, attempting fallback...', err);
@@ -57,27 +57,20 @@ export async function translateText(text, sourceLang, targetLang, options = {}) 
 }
 
 /**
- * Multi-Language Gemini AI Translator Prompt
+ * Gemini AI Strict High-Precision Translation (Zero Hallucination)
  */
-async function translateWithGeminiMultiLang(text, sourceLang, targetLang, apiKey) {
+async function translateWithGeminiStrict(text, sourceLang, targetLang, apiKey) {
   const sourceName = LANG_NAMES[sourceLang] || sourceLang;
   const targetName = LANG_NAMES[targetLang] || targetLang;
 
-  let styleGuide = '';
-  if (targetLang === 'th') {
-    styleGuide = 'Use polite particles like ครับ/ค่ะ where natural.';
-  } else if (targetLang === 'ko') {
-    styleGuide = 'Use polite, formal Korean (존댓말).';
-  } else if (targetLang === 'en') {
-    styleGuide = 'Use clear, natural, and polite conversational English.';
-  }
+  const systemInstruction = `You are a strict, ultra-precise ${sourceName}-to-${targetName} real-time translator.
+CRITICAL RULES:
+1. Translate the input sentence into ${targetName} with 100% fidelity.
+2. NEVER add extra people, pronouns, or details that were NOT present in the original sentence (e.g. NEVER add "with him", "with her", or extra context).
+3. Keep the translation natural, concise, and accurate.
+4. Output ONLY the translated text without quotes or explanations.`;
 
-  const systemInstruction = `You are an expert real-time ${sourceName}-to-${targetName} translator for video calls. 
-Translate the input ${sourceName} sentence into natural, fluent ${targetName}. ${styleGuide}
-Do NOT perform literal word-for-word translation. 
-Output ONLY the final translated ${targetName} sentence without any quotes, explanations, or extra commentary.`;
-
-  const prompt = `Input sentence: "${text}"\nTranslated text:`;
+  const prompt = `Source (${sourceName}): "${text}"\nExact Translation (${targetName}):`;
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
@@ -87,8 +80,8 @@ Output ONLY the final translated ${targetName} sentence without any quotes, expl
     body: JSON.stringify({
       contents: [{ parts: [{ text: `${systemInstruction}\n\n${prompt}` }] }],
       generationConfig: { 
-        temperature: 0.1,
-        maxOutputTokens: 300 
+        temperature: 0.0, // Absolute zero temperature for strict deterministic translation
+        maxOutputTokens: 200 
       }
     })
   });
@@ -105,17 +98,23 @@ Output ONLY the final translated ${targetName} sentence without any quotes, expl
 }
 
 /**
- * Google Free Translate API Endpoint
+ * Google Free Translate Strict Parser
  */
-async function translateWithGoogleFree(text, sourceLang, targetLang) {
+async function translateWithGoogleFreeStrict(text, sourceLang, targetLang) {
   const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
   
-  const res = await fetch(url);
+  const res = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+    }
+  });
+
   if (!res.ok) throw new Error(`Google Translate HTTP ${res.status}`);
   
   const data = await res.json();
   if (data && data[0] && Array.isArray(data[0])) {
-    return data[0].map(item => item[0]).filter(Boolean).join(' ');
+    const fullText = data[0].map(item => item[0]).filter(Boolean).join('');
+    return fullText.trim();
   }
   
   throw new Error('Invalid response structure from Google Translate');

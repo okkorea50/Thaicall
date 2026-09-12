@@ -141,14 +141,10 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
         onResult: async (interim, final) => {
           if (interim) {
             setMyInterimSpeech(interim);
-            peerService.sendSubtitle({
-              originalText: interim,
-              translatedText: '말하는 중... (Speaking...)',
-              isInterim: true,
-              senderLang: myLang
-            });
+            // Display speech preview locally, do not trigger API translation for incomplete interim words
           }
           if (final) {
+            console.log('[STT Final Result]:', final);
             setMyInterimSpeech('');
             setMyLastSpoken(final);
             await processAndSendSpeech(final);
@@ -158,7 +154,9 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
           console.error('Speech error:', err);
           setIsMicActive(false);
         },
-        onEnd: () => {}
+        onEnd: () => {
+          // If user manually stopped
+        }
       });
 
       setIsMicActive(true);
