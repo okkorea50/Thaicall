@@ -50,11 +50,12 @@ function initAndStart() {
     recognition.continuous = false;
     recognition.interimResults = true;
     
-    // Support language mapping (ko -> ko-KR, th -> th-TH, en -> en-US)
+    // Support language mapping (ko -> ko-KR, th -> th-TH, en -> en-US, mn -> mn-MN)
     const rawLang = currentConfig?.lang || 'ko-KR';
     if (rawLang === 'ko') recognition.lang = 'ko-KR';
     else if (rawLang === 'th') recognition.lang = 'th-TH';
     else if (rawLang === 'en') recognition.lang = 'en-US';
+    else if (rawLang === 'mn') recognition.lang = 'mn-MN';
     else recognition.lang = rawLang;
 
     let lastText = '';

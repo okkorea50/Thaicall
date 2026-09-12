@@ -414,7 +414,7 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
               borderRadius: '10px',
               fontSize: '0.7rem'
             }}>
-              {(partnerLang === 'ko' ? '한국어' : partnerLang === 'th' ? '태국어' : '영어')} ➔ {(myLang === 'ko' ? '한국어' : myLang === 'th' ? '태국어' : '영어')}
+              {(partnerLang === 'ko' ? '한국어' : partnerLang === 'th' ? '태국어' : partnerLang === 'mn' ? '몽골어' : '영어')} ➔ {(myLang === 'ko' ? '한국어' : myLang === 'th' ? '태국어' : myLang === 'mn' ? '몽골어' : '영어')}
             </span>
           </div>
 

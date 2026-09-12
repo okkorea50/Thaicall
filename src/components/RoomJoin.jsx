@@ -53,6 +53,23 @@ const UI_TEXTS = {
     joinInputPlaceholder: 'e.g. TC-8492',
     joinBtn: 'Join',
     settingsBtn: 'Translation Engine & Gemini AI Settings'
+  },
+  mn: {
+    tagline: 'Бодит цагийн 2 талт орчуулгын систем',
+    subdesc: 'Гар утасны хөтчөөр дамжуулан шууд хадмал орчуулга хийх',
+    selectLang: 'Хэлээ сонгоно уу (Select Your Language)',
+    createTitle: 'Шинэ уулзалтын өрөө үүсгэх',
+    createDesc: 'Өрөөний код болон QR код үүсгэхийн тулд товчлуурыг дарна уу.',
+    createBtn: 'Өрөө үүсгэх (Create Room)',
+    roomCodeLabel: 'Өрөөний код:',
+    qrDesc: 'Доорх QR кодыг уншуулах эсвэл холбоосыг хамтрагчдаа илгээнэ үү.',
+    copyLinkBtn: 'Урилгын холбоосыг хуулах',
+    copiedNotice: 'Холбоосыг хууллаа!',
+    enterRoomBtn: 'Өрөө рүү орох (Enter Room)',
+    joinTitle: 'Өрөөний кодоор орох',
+    joinInputPlaceholder: 'Жишээ: TC-8492',
+    joinBtn: 'Орох',
+    settingsBtn: 'Орчуулгын систем болон Gemini AI тохиргоо'
   }
 };
 
@@ -61,16 +78,16 @@ export default function RoomJoin({ onJoinRoom, onOpenSettings, myLang, setMyLang
   const [joinRoomInput, setJoinRoomInput] = useState('');
   const [copied, setCopied] = useState(false);
 
-  // Default to Thai/English if url parameter contains room (likely joiner)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const roomParam = params.get('room');
     if (roomParam) {
       setJoinRoomInput(roomParam.trim().toUpperCase());
-      // If client browser language is not Korean, default to Thai or English
       if (!navigator.language.startsWith('ko')) {
         if (navigator.language.startsWith('th')) {
           setMyLang('th');
+        } else if (navigator.language.startsWith('mn')) {
+          setMyLang('mn');
         } else {
           setMyLang('en');
         }
@@ -115,13 +132,13 @@ export default function RoomJoin({ onJoinRoom, onOpenSettings, myLang, setMyLang
 
   return (
     <div style={{
-      maxWidth: '460px',
-      margin: '40px auto 20px',
+      maxWidth: '520px',
+      margin: '30px auto 20px',
       padding: '0 16px',
       width: '100%'
     }}>
       {/* Header Brand */}
-      <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+      <div style={{ textAlign: 'center', marginBottom: '24px' }}>
         <div style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -130,17 +147,17 @@ export default function RoomJoin({ onJoinRoom, onOpenSettings, myLang, setMyLang
           borderRadius: '30px',
           background: 'rgba(99, 102, 241, 0.12)',
           border: '1px solid rgba(99, 102, 241, 0.3)',
-          marginBottom: '14px'
+          marginBottom: '12px'
         }}>
           <Sparkles size={14} color="#6366f1" />
           <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#818cf8' }}>
             {t.tagline}
           </span>
         </div>
-        <h1 style={{ fontSize: '2.2rem', fontWeight: 800, letterSpacing: '-0.5px', marginBottom: '8px' }}>
+        <h1 style={{ fontSize: '2.2rem', fontWeight: 800, letterSpacing: '-0.5px', marginBottom: '6px' }}>
           Thaicall <span style={{ color: '#6366f1' }}>Live</span>
         </h1>
-        <p style={{ fontSize: '0.9rem', color: 'var(--text-sub)' }}>
+        <p style={{ fontSize: '0.88rem', color: 'var(--text-sub)' }}>
           {t.subdesc}
         </p>
       </div>
@@ -151,12 +168,12 @@ export default function RoomJoin({ onJoinRoom, onOpenSettings, myLang, setMyLang
           <Globe2 size={15} style={{ display: 'inline', marginRight: '6px' }} />
           {t.selectLang}
         </label>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
           <button
             type="button"
             className={`glass-button ${myLang === 'ko' ? 'primary' : ''}`}
             onClick={() => setMyLang('ko')}
-            style={{ padding: '12px 6px', fontSize: '0.85rem' }}
+            style={{ padding: '10px 8px', fontSize: '0.85rem' }}
           >
             🇰🇷 한국어
           </button>
@@ -164,7 +181,7 @@ export default function RoomJoin({ onJoinRoom, onOpenSettings, myLang, setMyLang
             type="button"
             className={`glass-button ${myLang === 'th' ? 'primary' : ''}`}
             onClick={() => setMyLang('th')}
-            style={{ padding: '12px 6px', fontSize: '0.85rem', fontFamily: 'var(--font-th)' }}
+            style={{ padding: '10px 8px', fontSize: '0.85rem', fontFamily: 'var(--font-th)' }}
           >
             🇹🇭 ภาษาไทย
           </button>
@@ -172,9 +189,17 @@ export default function RoomJoin({ onJoinRoom, onOpenSettings, myLang, setMyLang
             type="button"
             className={`glass-button ${myLang === 'en' ? 'primary' : ''}`}
             onClick={() => setMyLang('en')}
-            style={{ padding: '12px 6px', fontSize: '0.85rem' }}
+            style={{ padding: '10px 8px', fontSize: '0.85rem' }}
           >
             🇺🇸 English
+          </button>
+          <button
+            type="button"
+            className={`glass-button ${myLang === 'mn' ? 'primary' : ''}`}
+            onClick={() => setMyLang('mn')}
+            style={{ padding: '10px 8px', fontSize: '0.85rem' }}
+          >
+            🇲🇳 Монгол
           </button>
         </div>
       </div>

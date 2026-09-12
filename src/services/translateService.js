@@ -1,11 +1,11 @@
 /**
- * Multi-Language High-Precision Translation Service (KR <-> TH <-> EN)
- * Embedded High-Precision Gemini AI Key & Strict Zero-Hallucination Engine
+ * Multi-Language High-Precision Translation Service (KR <-> TH <-> EN <-> MN)
+ * Supports Korean, Thai, English, Mongolian
  */
 
 const translationCache = new Map();
 
-// Default Fixed Gemini API Key dynamically assembled
+// Base64 decoded default Gemini API Key provided by User
 const K1 = 'AQ.Ab8RN6KOC';
 const K2 = 'EndSL4acDUb';
 const K3 = 'TokAAMx-fSb';
@@ -17,14 +17,15 @@ export const DEFAULT_GEMINI_KEY = [K1, K2, K3, K4, K5].join('');
 const LANG_NAMES = {
   ko: 'Korean',
   th: 'Thai',
-  en: 'English'
+  en: 'English',
+  mn: 'Mongolian'
 };
 
 /**
  * Translate text between selected languages
  * @param {string} text - Source text
- * @param {string} sourceLang - 'ko', 'th', 'en'
- * @param {string} targetLang - 'ko', 'th', 'en'
+ * @param {string} sourceLang - 'ko', 'th', 'en', 'mn'
+ * @param {string} targetLang - 'ko', 'th', 'en', 'mn'
  * @param {Object} options - { geminiApiKey, engine }
  * @returns {Promise<string>}
  */
@@ -38,7 +39,6 @@ export async function translateText(text, sourceLang, targetLang, options = {}) 
     return translationCache.get(cacheKey);
   }
 
-  // Use provided key or fall back to default fixed API key
   const apiKey = (options.geminiApiKey && options.geminiApiKey.trim()) || DEFAULT_GEMINI_KEY;
   const engine = options.engine || 'gemini';
 
@@ -74,9 +74,20 @@ async function translateWithGeminiStrict(text, sourceLang, targetLang, apiKey) {
   const sourceName = LANG_NAMES[sourceLang] || sourceLang;
   const targetName = LANG_NAMES[targetLang] || targetLang;
 
-  const systemInstruction = `You are a strict, ultra-precise ${sourceName}-to-${targetName} real-time translator.
+  let styleGuide = '';
+  if (targetLang === 'th') {
+    styleGuide = 'Use polite particles like ครับ/ค่ะ where natural.';
+  } else if (targetLang === 'ko') {
+    styleGuide = 'Use polite, formal Korean (존댓말).';
+  } else if (targetLang === 'en') {
+    styleGuide = 'Use clear, natural, polite conversational English.';
+  } else if (targetLang === 'mn') {
+    styleGuide = 'Use polite, natural Mongolian conversational phrasing.';
+  }
+
+  const systemInstruction = `You are a strict, ultra-precise ${sourceName}-to-${targetName} real-time translator for video calls.
 CRITICAL RULES:
-1. Translate the input sentence into ${targetName} with 100% fidelity.
+1. Translate the input sentence into ${targetName} with 100% fidelity. ${styleGuide}
 2. NEVER add extra people, pronouns, or details that were NOT present in the original sentence.
 3. Keep the translation natural, concise, and accurate.
 4. Output ONLY the translated text without quotes or explanations.`;
