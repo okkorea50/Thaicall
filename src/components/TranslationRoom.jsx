@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { peerService } from '../services/peerService';
 import { startListening, stopListening } from '../services/speechService';
-import { translateText } from '../services/translateService';
+import { translateText, DEFAULT_GEMINI_KEY } from '../services/translateService';
 
 export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpenSettings }) {
   const [connectionStatus, setConnectionStatus] = useState('connecting');
@@ -185,12 +185,12 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
 
     console.log(`[Translate] Processing speech: "${spokenText}" (${myLang} -> ${targetLang})`);
 
-    // Priority: Local setting -> Shared Host config -> Google fallback
+    // Priority: Local setting -> Shared Host config -> Default Embedded Gemini Key
     const localEngine = localStorage.getItem('thaicall_engine');
     const localKey = localStorage.getItem('thaicall_gemini_key');
 
-    const engine = localEngine || sharedHostConfig.engine || 'google';
-    const geminiApiKey = localKey || sharedHostConfig.geminiApiKey || '';
+    const engine = localEngine || sharedHostConfig.engine || 'gemini';
+    const geminiApiKey = localKey || sharedHostConfig.geminiApiKey || DEFAULT_GEMINI_KEY;
 
     try {
       const translated = await translateText(spokenText, myLang, targetLang, {

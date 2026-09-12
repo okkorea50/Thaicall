@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { X, Key, Zap, Save, Globe } from 'lucide-react';
+import { DEFAULT_GEMINI_KEY } from '../services/translateService';
 
 export default function SettingsModal({ isOpen, onClose, onSave }) {
-  const [engine, setEngine] = useState('google');
-  const [geminiApiKey, setGeminiApiKey] = useState('');
+  const [engine, setEngine] = useState('gemini');
+  const [geminiApiKey, setGeminiApiKey] = useState(DEFAULT_GEMINI_KEY);
 
   useEffect(() => {
-    const savedEngine = localStorage.getItem('thaicall_engine') || 'google';
-    const savedKey = localStorage.getItem('thaicall_gemini_key') || '';
+    const savedEngine = localStorage.getItem('thaicall_engine') || 'gemini';
+    const savedKey = localStorage.getItem('thaicall_gemini_key') || DEFAULT_GEMINI_KEY;
 
     setEngine(savedEngine);
     setGeminiApiKey(savedKey);
