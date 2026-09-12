@@ -9,7 +9,11 @@ import { translateText } from '../services/translateService';
 
 export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpenSettings }) {
   const [connectionStatus, setConnectionStatus] = useState('connecting');
-  const [partnerLang, setPartnerLang] = useState(myLang === 'ko' ? 'th' : 'ko');
+  const [partnerLang, setPartnerLang] = useState(() => {
+    if (myLang === 'ko') return 'en';
+    if (myLang === 'th') return 'ko';
+    return 'ko';
+  });
   
   // Microphone & Input states
   const [isMicActive, setIsMicActive] = useState(false);
@@ -173,7 +177,10 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
 
   // 3. Process Speech & Translate & Send P2P Payload
   const processAndSendSpeech = async (spokenText) => {
-    const targetLang = myLang === 'ko' ? 'th' : 'ko';
+    // Dynamic target language based on partner's language choice
+    const targetLang = partnerLang || (myLang === 'ko' ? 'en' : 'ko');
+
+    console.log(`[Translate] Processing speech: "${spokenText}" (${myLang} -> ${targetLang})`);
 
     // Priority: Local setting -> Shared Host config -> Google fallback
     const localEngine = localStorage.getItem('thaicall_engine');
@@ -187,6 +194,8 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
         engine,
         geminiApiKey
       });
+
+      console.log(`[Translate] Output translated: "${translated}"`);
 
       // Send via PeerJS to partner
       peerService.sendSubtitle({
