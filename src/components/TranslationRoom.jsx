@@ -127,6 +127,9 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
     }
   }, [history, showHistory]);
 
+  // Microphone Permission Warning Notice
+  const [micErrorNotice, setMicErrorNotice] = useState('');
+
   // 2. Microphone Toggle Handler
   const toggleMicrophone = () => {
     if (isMicActive) {
@@ -134,14 +137,14 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
       setIsMicActive(false);
       setMyInterimSpeech('');
     } else {
-      const speechLang = myLang === 'ko' ? 'ko-KR' : 'th-TH';
+      setMicErrorNotice('');
+      const speechLang = myLang === 'ko' ? 'ko-KR' : myLang === 'th' ? 'th-TH' : 'en-US';
       
       startListening({
         lang: speechLang,
         onResult: async (interim, final) => {
           if (interim) {
             setMyInterimSpeech(interim);
-            // Display speech preview locally, do not trigger API translation for incomplete interim words
           }
           if (final) {
             console.log('[STT Final Result]:', final);
@@ -151,11 +154,13 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
           }
         },
         onError: (err) => {
-          console.error('Speech error:', err);
+          console.warn('Speech error notice:', err);
           setIsMicActive(false);
+          setMicErrorNotice(err);
+          setTimeout(() => setMicErrorNotice(''), 4000);
         },
         onEnd: () => {
-          // If user manually stopped
+          // Stopped
         }
       });
 
@@ -347,6 +352,24 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
           </button>
         </div>
       </header>
+
+      {/* Mic Permission Warning Banner */}
+      {micErrorNotice && (
+        <div style={{
+          margin: '8px 12px 0 12px',
+          padding: '10px 14px',
+          borderRadius: '12px',
+          background: 'rgba(244, 63, 94, 0.25)',
+          border: '1px solid rgba(244, 63, 94, 0.5)',
+          color: '#fecdd3',
+          fontSize: '0.85rem',
+          textAlign: 'center',
+          fontWeight: 600,
+          zIndex: 10
+        }}>
+          {micErrorNotice}
+        </div>
+      )}
 
       {/* Main Subtitle Display Area */}
       <main style={{

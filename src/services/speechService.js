@@ -1,6 +1,6 @@
 /**
  * Web Speech API Service
- * Standard reliable STT & TTS Service with Robust Voice Fallback
+ * Mobile Friendly STT & TTS Service with Clean Permission Error Handling
  */
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -17,11 +17,12 @@ let isListening = false;
 let currentConfig = null;
 let activeRecognition = null;
 let restartTimer = null;
+let lastErrorTime = 0;
 
 // Speech Recognition (STT)
 export function startListening(config) {
   if (!SpeechRecognition) {
-    if (config.onError) config.onError('Web Speech API가 지원되지 않는 브라우저입니다.');
+    if (config.onError) config.onError('이 브라우저에서는 음성 인식을 지원하지 않습니다. (Use Chrome/Safari)');
     return null;
   }
 
@@ -85,18 +86,28 @@ function initAndStart() {
 
     recognition.onerror = (event) => {
       console.warn('[Speech] Error event:', event.error);
-      if (event.error === 'not-allowed') {
+      const now = Date.now();
+      
+      // If microphone access is denied or not allowed on mobile, stop immediately to prevent endless popups
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
         isListening = false;
-        if (currentConfig?.onError) {
-          currentConfig.onError('마이크 권한이 필요합니다.');
+        clearTimeout(restartTimer);
+
+        if (now - lastErrorTime > 3000) {
+          lastErrorTime = now;
+          if (currentConfig?.onError) {
+            currentConfig.onError('휴대폰 마이크 사용 권한을 허용해 주세요. (주소창 🔒 아이콘 터치)');
+          }
         }
+        return;
       }
     };
 
     recognition.onend = () => {
+      // Only restart if explicitly still in listening state (not cancelled by permission errors)
       if (isListening) {
         clearTimeout(restartTimer);
-        restartTimer = setTimeout(initAndStart, 200);
+        restartTimer = setTimeout(initAndStart, 300);
       }
     };
 
@@ -105,7 +116,7 @@ function initAndStart() {
   } catch (err) {
     if (isListening) {
       clearTimeout(restartTimer);
-      restartTimer = setTimeout(initAndStart, 500);
+      restartTimer = setTimeout(initAndStart, 1000);
     }
   }
 }
@@ -124,7 +135,7 @@ export function stopListening() {
 }
 
 /**
- * Get available installed voices for target language prefix ('ko' or 'th')
+ * Get available installed voices
  */
 export function getAvailableVoices(langPrefix = 'ko') {
   if (!isTTSSupported()) return [];
@@ -133,7 +144,7 @@ export function getAvailableVoices(langPrefix = 'ko') {
 }
 
 /**
- * Robust SpeechSynthesis (TTS) with Fallback for Missing OS Language Packs
+ * Robust SpeechSynthesis (TTS)
  */
 export function speakText(text, lang = 'ko-KR', rate = 1.0, voiceUri = '') {
   if (!isTTSSupported() || !text || !text.trim()) return;
@@ -163,16 +174,13 @@ export function speakText(text, lang = 'ko-KR', rate = 1.0, voiceUri = '') {
         targetVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith(prefix));
       }
 
-      // Fallback: If specific language pack (e.g. th-TH on Windows) is missing, use default voice so it never stays silent!
       if (targetVoice) {
         utterance.voice = targetVoice;
       } else if (voices.length > 0) {
-        console.warn(`[TTS] Language voice for ${lang} not found on this OS. Using fallback voice:`, voices[0].name);
         utterance.voice = voices[0];
       }
 
       window.speechSynthesis.speak(utterance);
-      console.log('[TTS] Successfully triggering speech utterance for:', cleanText);
     };
 
     const voices = window.speechSynthesis.getVoices();
