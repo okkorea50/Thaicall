@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Mic, MicOff, PhoneOff, Settings, 
-  MessageSquare, Download, Copy, Check, Users, Send, ArrowRightLeft
+  MessageSquare, Download, Copy, Check, Users, Send, ArrowRightLeft, Volume2
 } from 'lucide-react';
 import { peerService } from '../services/peerService';
-import { startListening, stopListening } from '../services/speechService';
+import { startListening, stopListening, speakText } from '../services/speechService';
 import { translateText, DEFAULT_GEMINI_KEY } from '../services/translateService';
 import { LANGUAGES, getLanguage, getUIText } from '../constants/languages';
 
@@ -124,6 +124,36 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
       peerService.disconnect();
     };
   }, [roomId, isHost, myLang]);
+
+  // Mobile Screen WakeLock: Keep mobile phone screen on during live subtitle conversation
+  useEffect(() => {
+    let wakeLock = null;
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+          console.log('[WakeLock] Mobile screen wake lock active');
+        }
+      } catch (err) {
+        console.warn('[WakeLock] Notice:', err.message);
+      }
+    };
+    requestWakeLock();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        requestWakeLock();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if (wakeLock) {
+        wakeLock.release().catch(() => {});
+      }
+    };
+  }, []);
 
   // Auto scroll history
   useEffect(() => {
@@ -248,11 +278,14 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      height: '100vh',
+      height: '100dvh',
+      minHeight: '-webkit-fill-available',
+      maxHeight: '100dvh',
       maxWidth: '720px',
       margin: '0 auto',
       width: '100%',
-      position: 'relative'
+      position: 'relative',
+      overflow: 'hidden'
     }}>
       {/* Top Header Bar */}
       <header className="glass-panel" style={{
@@ -485,10 +518,29 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
               <p style={{
                 fontSize: '0.95rem',
                 color: 'var(--text-muted)',
-                fontStyle: 'italic'
+                fontStyle: 'italic',
+                marginBottom: '10px'
               }}>
                 "{partnerSubtitle.original}"
               </p>
+            )}
+
+            {partnerSubtitle.original && (
+              <button
+                type="button"
+                onClick={() => speakText(partnerSubtitle.translated, myLangObj.stt)}
+                className="glass-button"
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '16px',
+                  fontSize: '0.75rem',
+                  color: '#c7d2fe',
+                  background: 'rgba(99, 102, 241, 0.15)',
+                  border: '1px solid rgba(99, 102, 241, 0.3)'
+                }}
+              >
+                <Volume2 size={13} /> 발음 듣기 (Listen)
+              </button>
             )}
           </div>
         </div>
