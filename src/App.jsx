@@ -5,12 +5,16 @@ import SettingsModal from './components/SettingsModal';
 import { isSpeechSupported } from './services/speechService';
 import { AlertTriangle } from 'lucide-react';
 
+import { LANGUAGES } from './constants/languages';
+
 export default function App() {
   const [view, setView] = useState('join'); // 'join' | 'room'
   const [roomId, setRoomId] = useState('');
   const [isHost, setIsHost] = useState(true);
   const [myLang, setMyLang] = useState(() => {
-    return navigator.language.startsWith('th') ? 'th' : 'ko';
+    const browser = (navigator.language || '').toLowerCase();
+    const match = LANGUAGES.find(l => browser.startsWith(l.code));
+    return match ? match.code : 'ko';
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(true);

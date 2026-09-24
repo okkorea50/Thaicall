@@ -3,6 +3,8 @@
  * Mobile Friendly STT & TTS Service with Clean Permission Error Handling
  */
 
+import { getLanguage } from '../constants/languages';
+
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 export function isSpeechSupported() {
@@ -50,13 +52,10 @@ function initAndStart() {
     recognition.continuous = false;
     recognition.interimResults = true;
     
-    // Support language mapping (ko -> ko-KR, th -> th-TH, en -> en-US, mn -> mn-MN)
+    // Support dynamic 20 languages STT mapping
     const rawLang = currentConfig?.lang || 'ko-KR';
-    if (rawLang === 'ko') recognition.lang = 'ko-KR';
-    else if (rawLang === 'th') recognition.lang = 'th-TH';
-    else if (rawLang === 'en') recognition.lang = 'en-US';
-    else if (rawLang === 'mn') recognition.lang = 'mn-MN';
-    else recognition.lang = rawLang;
+    const langObj = getLanguage(rawLang);
+    recognition.lang = langObj.stt || rawLang;
 
     let lastText = '';
 

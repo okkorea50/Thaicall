@@ -1,101 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Video, Copy, Check, ArrowRight, Settings, Sparkles, Globe2, LogIn } from 'lucide-react';
-
-const UI_TEXTS = {
-  ko: {
-    tagline: '실시간 양방향 대화 자막 통번역',
-    subdesc: '모바일 브라우저로 접속하는 실시간 자막 통번역 시스템',
-    selectLang: '내 언어 선택 / Select Your Language',
-    createTitle: '새 통번역 회의 방 만들기',
-    createDesc: '버튼을 누르면 회의 코드 및 QR 접속 코드가 생성됩니다.',
-    createBtn: '새 회의 생성 (Create Room)',
-    roomCodeLabel: '회의 코드:',
-    qrDesc: '아래 QR코드를 파트너 휴대폰으로 스캔하거나 링크를 전달하세요.',
-    copyLinkBtn: '초대 링크 복사하기',
-    copiedNotice: '초대 링크가 복사되었습니다!',
-    enterRoomBtn: '회의 입장하기 (Enter Room)',
-    joinTitle: '초대받은 회의 코드로 입장',
-    joinInputPlaceholder: '예: TC-8492',
-    joinBtn: '참여',
-    settingsBtn: '통번역 엔진 및 Gemini AI 설정'
-  },
-  th: {
-    tagline: 'ระบบแปลคำบรรยายการสนทนาแบบเรียลไทม์',
-    subdesc: 'ระบบแปลคำบรรยายสด 2 ทิศทางผ่านเบราว์เซอร์มือถือ',
-    selectLang: 'เลือกภาษาของคุณ (Select Your Language)',
-    createTitle: 'สร้างห้องประชุมแปลภาษาใหม่',
-    createDesc: 'กดปุ่มเพื่อสร้างรหัสห้องประชุมและคิวอาร์โค้ด',
-    createBtn: 'สร้างห้องประชุม (Create Room)',
-    roomCodeLabel: 'รหัสห้องประชุม:',
-    qrDesc: 'สแกนคิวอาร์โค้ดด้านล่างหรือส่งลิงก์ให้คู่สนทนาของคุณ',
-    copyLinkBtn: 'คัดลอกลิงก์คำเชิญ',
-    copiedNotice: 'คัดลอกลิงก์คำเชิญเรียบร้อยแล้ว!',
-    enterRoomBtn: 'เข้าสู่ห้องประชุม (Enter Room)',
-    joinTitle: 'เข้าร่วมด้วยรหัสห้องประชุม',
-    joinInputPlaceholder: 'ตัวอย่าง: TC-8492',
-    joinBtn: 'เข้าร่วม',
-    settingsBtn: 'การตั้งค่าเอ็นจินแปลภาษา & Gemini AI'
-  },
-  en: {
-    tagline: 'Real-time 2-Way Subtitle Translator',
-    subdesc: 'Real-time subtitle translation via mobile browser',
-    selectLang: 'Select Your Language',
-    createTitle: 'Create New Meeting Room',
-    createDesc: 'Click the button to generate a room code and QR code.',
-    createBtn: 'Create Room',
-    roomCodeLabel: 'Room Code:',
-    qrDesc: 'Scan the QR code below or share the link with your partner.',
-    copyLinkBtn: 'Copy Invite Link',
-    copiedNotice: 'Invite link copied to clipboard!',
-    enterRoomBtn: 'Enter Room',
-    joinTitle: 'Join with Room Code',
-    joinInputPlaceholder: 'e.g. TC-8492',
-    joinBtn: 'Join',
-    settingsBtn: 'Translation Engine & Gemini AI Settings'
-  },
-  mn: {
-    tagline: 'Бодит цагийн 2 талт орчуулгын систем',
-    subdesc: 'Гар утасны хөтчөөр дамжуулан шууд хадмал орчуулга хийх',
-    selectLang: 'Хэлээ сонгоно уу (Select Your Language)',
-    createTitle: 'Шинэ уулзалтын өрөө үүсгэх',
-    createDesc: 'Өрөөний код болон QR код үүсгэхийн тулд товчлуурыг дарна уу.',
-    createBtn: 'Өрөө үүсгэх (Create Room)',
-    roomCodeLabel: 'Өрөөний код:',
-    qrDesc: 'Доорх QR кодыг уншуулах эсвэл холбоосыг хамтрагчдаа илгээнэ үү.',
-    copyLinkBtn: 'Урилгын холбоосыг хуулах',
-    copiedNotice: 'Холбоосыг хууллаа!',
-    enterRoomBtn: 'Өрөө рүү орох (Enter Room)',
-    joinTitle: 'Өрөөний кодоор орох',
-    joinInputPlaceholder: 'Жишээ: TC-8492',
-    joinBtn: 'Орох',
-    settingsBtn: 'Орчуулгын систем болон Gemini AI тохиргоо'
-  }
-};
+import { Video, Copy, Check, ArrowRight, Settings, Sparkles, Globe2, LogIn, Search, X } from 'lucide-react';
+import { LANGUAGES, getLanguage, getUIText } from '../constants/languages';
 
 export default function RoomJoin({ onJoinRoom, onOpenSettings, myLang, setMyLang }) {
   const [createdRoomId, setCreatedRoomId] = useState('');
   const [joinRoomInput, setJoinRoomInput] = useState('');
   const [copied, setCopied] = useState(false);
+  const [langSearch, setLangSearch] = useState('');
 
+  // Auto-detect language from URL or browser
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const roomParam = params.get('room');
     if (roomParam) {
       setJoinRoomInput(roomParam.trim().toUpperCase());
-      if (!navigator.language.startsWith('ko')) {
-        if (navigator.language.startsWith('th')) {
-          setMyLang('th');
-        } else if (navigator.language.startsWith('mn')) {
-          setMyLang('mn');
-        } else {
-          setMyLang('en');
-        }
+      const browserLang = (navigator.language || '').toLowerCase();
+      const matched = LANGUAGES.find(l => browserLang.startsWith(l.code));
+      if (matched) {
+        setMyLang(matched.code);
+      } else if (!browserLang.startsWith('ko')) {
+        setMyLang('en');
       }
     }
-  }, []);
+  }, [setMyLang]);
 
-  const t = UI_TEXTS[myLang] || UI_TEXTS.ko;
+  const t = getUIText(myLang);
+  const currentLangObj = getLanguage(myLang);
+
+  const filteredLanguages = useMemo(() => {
+    if (!langSearch.trim()) return LANGUAGES;
+    const q = langSearch.trim().toLowerCase();
+    return LANGUAGES.filter(l => 
+      l.name.toLowerCase().includes(q) ||
+      l.native.toLowerCase().includes(q) ||
+      l.code.toLowerCase().includes(q) ||
+      l.prompt.toLowerCase().includes(q)
+    );
+  }, [langSearch]);
 
   const handleCreateRoom = () => {
     const randomCode = `TC-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -132,13 +74,13 @@ export default function RoomJoin({ onJoinRoom, onOpenSettings, myLang, setMyLang
 
   return (
     <div style={{
-      maxWidth: '520px',
-      margin: '30px auto 20px',
+      maxWidth: '540px',
+      margin: '24px auto 20px',
       padding: '0 16px',
       width: '100%'
     }}>
       {/* Header Brand */}
-      <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+      <div style={{ textAlign: 'center', marginBottom: '22px' }}>
         <div style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -147,7 +89,7 @@ export default function RoomJoin({ onJoinRoom, onOpenSettings, myLang, setMyLang
           borderRadius: '30px',
           background: 'rgba(99, 102, 241, 0.12)',
           border: '1px solid rgba(99, 102, 241, 0.3)',
-          marginBottom: '12px'
+          marginBottom: '10px'
         }}>
           <Sparkles size={14} color="#6366f1" />
           <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#818cf8' }}>
@@ -162,45 +104,96 @@ export default function RoomJoin({ onJoinRoom, onOpenSettings, myLang, setMyLang
         </p>
       </div>
 
-      {/* Language Selector Buttons */}
-      <div className="glass-panel" style={{ padding: '18px', marginBottom: '18px' }}>
-        <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-sub)', marginBottom: '10px', fontWeight: 600 }}>
-          <Globe2 size={15} style={{ display: 'inline', marginRight: '6px' }} />
-          {t.selectLang}
-        </label>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-          <button
-            type="button"
-            className={`glass-button ${myLang === 'ko' ? 'primary' : ''}`}
-            onClick={() => setMyLang('ko')}
-            style={{ padding: '10px 8px', fontSize: '0.85rem' }}
-          >
-            🇰🇷 한국어
-          </button>
-          <button
-            type="button"
-            className={`glass-button ${myLang === 'th' ? 'primary' : ''}`}
-            onClick={() => setMyLang('th')}
-            style={{ padding: '10px 8px', fontSize: '0.85rem', fontFamily: 'var(--font-th)' }}
-          >
-            🇹🇭 ภาษาไทย
-          </button>
-          <button
-            type="button"
-            className={`glass-button ${myLang === 'en' ? 'primary' : ''}`}
-            onClick={() => setMyLang('en')}
-            style={{ padding: '10px 8px', fontSize: '0.85rem' }}
-          >
-            🇺🇸 English
-          </button>
-          <button
-            type="button"
-            className={`glass-button ${myLang === 'mn' ? 'primary' : ''}`}
-            onClick={() => setMyLang('mn')}
-            style={{ padding: '10px 8px', fontSize: '0.85rem' }}
-          >
-            🇲🇳 Монгол
-          </button>
+      {/* 20 Languages Selector Panel */}
+      <div className="glass-panel" style={{ padding: '16px 18px', marginBottom: '18px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <label style={{ fontSize: '0.85rem', color: 'var(--text-sub)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Globe2 size={16} color="#818cf8" />
+            {t.selectLang}
+          </label>
+          <span style={{
+            fontSize: '0.78rem',
+            padding: '3px 10px',
+            borderRadius: '20px',
+            background: 'rgba(99, 102, 241, 0.2)',
+            color: '#c7d2fe',
+            fontWeight: 700
+          }}>
+            {currentLangObj.flag} {currentLangObj.native}
+          </span>
+        </div>
+
+        {/* Language Search Input */}
+        <div style={{ position: 'relative', marginBottom: '12px' }}>
+          <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+          <input
+            type="text"
+            className="glass-input"
+            placeholder={t.searchPlaceholder || '언어 또는 국가 검색...'}
+            value={langSearch}
+            onChange={(e) => setLangSearch(e.target.value)}
+            style={{
+              padding: '9px 32px 9px 34px',
+              fontSize: '0.85rem',
+              borderRadius: '12px'
+            }}
+          />
+          {langSearch && (
+            <button
+              onClick={() => setLangSearch('')}
+              style={{
+                position: 'absolute',
+                right: '10px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer'
+              }}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        {/* Responsive Language Buttons Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(115px, 1fr))',
+          gap: '8px',
+          maxHeight: '220px',
+          overflowY: 'auto',
+          paddingRight: '4px'
+        }}>
+          {filteredLanguages.map(l => {
+            const isSelected = myLang === l.code;
+            return (
+              <button
+                key={l.code}
+                type="button"
+                className={`glass-button ${isSelected ? 'primary' : ''}`}
+                onClick={() => setMyLang(l.code)}
+                style={{
+                  padding: '9px 6px',
+                  fontSize: '0.82rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  lineHeight: 1.25,
+                  borderRadius: '12px',
+                  border: isSelected ? '1.5px solid #818cf8' : '1px solid rgba(255, 255, 255, 0.08)'
+                }}
+              >
+                <span style={{ fontSize: '1.3rem', marginBottom: '3px' }}>{l.flag}</span>
+                <span style={{ fontWeight: 700, fontSize: '0.84rem' }}>{l.native}</span>
+                <span style={{ fontSize: '0.7rem', color: isSelected ? '#e0e7ff' : 'var(--text-muted)' }}>
+                  {l.name}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 

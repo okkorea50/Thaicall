@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Mic, MicOff, PhoneOff, Settings, 
-  MessageSquare, Download, Copy, Check, Users, Send
+  MessageSquare, Download, Copy, Check, Users, Send, ArrowRightLeft
 } from 'lucide-react';
 import { peerService } from '../services/peerService';
 import { startListening, stopListening } from '../services/speechService';
 import { translateText, DEFAULT_GEMINI_KEY } from '../services/translateService';
+import { LANGUAGES, getLanguage, getUIText } from '../constants/languages';
 
 export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpenSettings }) {
   const [connectionStatus, setConnectionStatus] = useState('connecting');
   const [partnerLang, setPartnerLang] = useState(() => {
-    if (myLang === 'ko') return 'en';
+    if (myLang === 'ko') return 'vi'; // default partner to Vietnamese for Korean users, or en
     if (myLang === 'th') return 'ko';
     return 'ko';
   });
@@ -21,10 +22,14 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
   const [myLastSpoken, setMyLastSpoken] = useState('');
   const [manualText, setManualText] = useState('');
   
+  const t = getUIText(myLang);
+  const myLangObj = getLanguage(myLang);
+  const partnerLangObj = getLanguage(partnerLang);
+
   // Subtitle Displays
   const [partnerSubtitle, setPartnerSubtitle] = useState({
     original: '',
-    translated: '상대방의 자막을 기다리는 중입니다... (Waiting for subtitles)',
+    translated: t.waitingSubtitle,
     timestamp: null
   });
 
@@ -138,7 +143,7 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
       setMyInterimSpeech('');
     } else {
       setMicErrorNotice('');
-      const speechLang = myLang === 'ko' ? 'ko-KR' : myLang === 'th' ? 'th-TH' : 'en-US';
+      const speechLang = myLangObj.stt || myLang;
       
       startListening({
         lang: speechLang,
@@ -227,14 +232,14 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
 
   const handleDownloadTranscript = () => {
     const content = history.map(item => 
-      `[${item.time}] ${item.sender === 'me' ? '나 (Me)' : '상대방 (Partner)'}\n- 원문 (${item.sender === 'me' ? myLang : partnerLang}): ${item.original}\n- 번역: ${item.translated}\n`
+      `[${item.time}] ${item.sender === 'me' ? '나 (Me)' : '상대방 (Partner)'}\n- 원문 (${item.sender === 'me' ? myLangObj.name : partnerLangObj.name}): ${item.original}\n- 번역: ${item.translated}\n`
     ).join('\n----------------------------------------\n');
 
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Thaicall_Transcript_${roomId}_${new Date().toISOString().slice(0,10)}.txt`;
+    a.download = `UniSub_Transcript_${roomId}_${new Date().toISOString().slice(0,10)}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -300,7 +305,7 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
               backgroundColor: connectionStatus === 'connected' ? '#10b981' : '#f59e0b',
               boxShadow: `0 0 8px ${connectionStatus === 'connected' ? '#10b981' : '#f59e0b'}`
             }} />
-            {connectionStatus === 'connected' ? '연결 완료 (Connected)' : '상대방 접속 대기 중...'}
+            {connectionStatus === 'connected' ? t.connected : t.waitingPartner}
           </div>
         </div>
 
@@ -310,7 +315,7 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
             onClick={() => setShowHistory(!showHistory)}
             className="glass-button"
             style={{ padding: '8px', borderRadius: '12px', position: 'relative' }}
-            title="대화 기록"
+            title={t.transcript}
           >
             <MessageSquare size={18} />
             {history.length > 0 && (
@@ -338,7 +343,7 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
             onClick={onOpenSettings}
             className="glass-button"
             style={{ padding: '8px', borderRadius: '12px' }}
-            title="설정"
+            title={t.settingsBtn}
           >
             <Settings size={18} />
           </button>
@@ -348,7 +353,7 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
             className="glass-button danger"
             style={{ padding: '8px 12px', borderRadius: '12px', fontSize: '0.85rem' }}
           >
-            <PhoneOff size={16} /> 나가기
+            <PhoneOff size={16} /> {t.leave}
           </button>
         </div>
       </header>
@@ -395,39 +400,82 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
           minHeight: '260px',
           background: 'linear-gradient(180deg, rgba(26, 32, 53, 0.85) 0%, rgba(15, 23, 42, 0.85) 100%)'
         }}>
+          {/* Top Bar with Language Indicator & Target Selector */}
           <div style={{
             position: 'absolute',
-            top: '18px',
-            left: '20px',
+            top: '16px',
+            left: '16px',
+            right: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
             fontSize: '0.75rem',
             fontWeight: 600,
             color: '#818cf8',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
+            flexWrap: 'wrap',
+            gap: '8px'
           }}>
-            <Users size={14} />
-            <span>상대방 자막 (Partner Subtitle)</span>
-            <span style={{
-              background: 'rgba(99, 102, 241, 0.2)',
-              padding: '2px 8px',
-              borderRadius: '10px',
-              fontSize: '0.7rem'
-            }}>
-              {(partnerLang === 'ko' ? '한국어' : partnerLang === 'th' ? '태국어' : partnerLang === 'mn' ? '몽골어' : '영어')} ➔ {(myLang === 'ko' ? '한국어' : myLang === 'th' ? '태국어' : myLang === 'mn' ? '몽골어' : '영어')}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Users size={14} />
+              <span>상대방 자막 (Partner Subtitle)</span>
+            </div>
+
+            {/* Translation Pair Direction Badge / Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{
+                background: 'rgba(99, 102, 241, 0.2)',
+                padding: '2px 8px',
+                borderRadius: '10px',
+                fontSize: '0.72rem',
+                color: '#c7d2fe'
+              }}>
+                {partnerLangObj.flag} {partnerLangObj.name}
+              </span>
+              <span style={{ color: 'var(--text-muted)' }}>➔</span>
+              <span style={{
+                background: 'rgba(16, 185, 129, 0.2)',
+                padding: '2px 8px',
+                borderRadius: '10px',
+                fontSize: '0.72rem',
+                color: '#6ee7b7'
+              }}>
+                {myLangObj.flag} {myLangObj.name}
+              </span>
+
+              {/* Quick Partner Target Language Switcher */}
+              <select
+                value={partnerLang}
+                onChange={(e) => setPartnerLang(e.target.value)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  color: 'var(--text-main)',
+                  borderRadius: '10px',
+                  padding: '2px 6px',
+                  fontSize: '0.7rem',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+                title="상대방 언어 변경"
+              >
+                {LANGUAGES.map(l => (
+                  <option key={l.code} value={l.code} style={{ background: '#1e293b', color: '#f8fafc' }}>
+                    {l.flag} {l.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Subtitle Text */}
-          <div style={{ margin: 'auto 0' }}>
+          <div style={{ margin: 'auto 0', width: '100%' }}>
             <h2 style={{
-              fontSize: partnerSubtitle.translated.length > 50 ? '1.6rem' : '2.1rem',
+              fontSize: partnerSubtitle.translated.length > 50 ? '1.5rem' : '2.1rem',
               fontWeight: 700,
               color: '#f8fafc',
               lineHeight: 1.4,
               letterSpacing: '-0.3px',
               marginBottom: partnerSubtitle.original ? '12px' : '0',
-              fontFamily: myLang === 'ko' ? 'var(--font-kr)' : 'var(--font-th)',
               textShadow: '0 2px 12px rgba(0, 0, 0, 0.6)'
             }}>
               {partnerSubtitle.translated}
@@ -437,8 +485,7 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
               <p style={{
                 fontSize: '0.95rem',
                 color: 'var(--text-muted)',
-                fontStyle: 'italic',
-                fontFamily: myLang === 'ko' ? 'var(--font-th)' : 'var(--font-kr)'
+                fontStyle: 'italic'
               }}>
                 "{partnerSubtitle.original}"
               </p>
@@ -458,7 +505,7 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
         }}>
           <div style={{
             display: 'flex',
-            justify: 'space-between',
+            justifyContent: 'space-between',
             alignItems: 'center',
             marginBottom: '6px'
           }}>
@@ -476,10 +523,10 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
                 borderRadius: '50%',
                 backgroundColor: isMicActive ? '#10b981' : '#64748b'
               }} />
-              {isMicActive ? '음성 감지 중... (Speaking)' : '내가 보낸 자막 미리보기'}
+              {isMicActive ? t.speaking : t.preview}
             </span>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-              내 언어: {myLang === 'ko' ? '🇰🇷 한국어' : '🇹🇭 ภาษาไทย'}
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-sub)', fontWeight: 600 }}>
+              내 언어: {myLangObj.flag} {myLangObj.name} ({myLangObj.native})
             </span>
           </div>
 
@@ -487,10 +534,9 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
             fontSize: '1.05rem',
             color: myInterimSpeech ? '#6366f1' : 'var(--text-main)',
             fontWeight: 500,
-            lineHeight: 1.4,
-            fontFamily: myLang === 'ko' ? 'var(--font-kr)' : 'var(--font-th)'
+            lineHeight: 1.4
           }}>
-            {myInterimSpeech || myLastSpoken || '아래 메시지 창에 치시거나 마이크를 켜고 말씀하세요.'}
+            {myInterimSpeech || myLastSpoken || t.inputPlaceholder}
           </p>
         </div>
       </main>
@@ -530,7 +576,7 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
           <input
             type="text"
             className="glass-input"
-            placeholder={myLang === 'ko' ? '한국어로 자막 메시지 입력...' : 'พิมพ์ข้อความที่นี่...'}
+            placeholder={t.inputPlaceholder}
             value={manualText}
             onChange={(e) => setManualText(e.target.value)}
             style={{ fontSize: '0.95rem', padding: '12px 16px', flex: 1 }}
@@ -541,7 +587,7 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
             disabled={!manualText.trim()}
             style={{ padding: '12px 18px', flexShrink: 0 }}
           >
-            <Send size={16} /> 전송
+            <Send size={16} /> {t.send}
           </button>
         </form>
       </footer>
@@ -568,11 +614,11 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <MessageSquare size={18} color="#6366f1" /> 대화록 (Transcript History)
+                <MessageSquare size={18} color="#6366f1" /> {t.transcript}
               </h3>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={handleDownloadTranscript} className="glass-button" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
-                  <Download size={14} /> 저장 (.txt)
+                  <Download size={14} /> {t.saveTxt}
                 </button>
                 <button onClick={() => setShowHistory(false)} className="glass-button" style={{ padding: '6px 10px' }}>
                   닫기
@@ -583,7 +629,7 @@ export default function TranslationRoom({ roomId, isHost, myLang, onLeave, onOpe
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', paddingRight: '4px' }}>
               {history.length === 0 ? (
                 <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: '40px', fontSize: '0.9rem' }}>
-                  아직 기록된 대화 자막이 없습니다.
+                  {t.noHistory}
                 </p>
               ) : (
                 history.map((item, idx) => (

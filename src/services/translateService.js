@@ -12,20 +12,15 @@ const K3 = 'TokAAMx-fSb';
 const K4 = 'WY9rdGpp62S';
 const K5 = 'nE9JYv3w';
 
-export const DEFAULT_GEMINI_KEY = [K1, K2, K3, K4, K5].join('');
+import { getLanguage } from '../constants/languages';
 
-const LANG_NAMES = {
-  ko: 'Korean',
-  th: 'Thai',
-  en: 'English',
-  mn: 'Mongolian'
-};
+export const DEFAULT_GEMINI_KEY = [K1, K2, K3, K4, K5].join('');
 
 /**
  * Translate text between selected languages
  * @param {string} text - Source text
- * @param {string} sourceLang - 'ko', 'th', 'en', 'mn'
- * @param {string} targetLang - 'ko', 'th', 'en', 'mn'
+ * @param {string} sourceLang - 2-letter language code (ko, th, en, vi, zh, ...)
+ * @param {string} targetLang - 2-letter language code
  * @param {Object} options - { geminiApiKey, engine }
  * @returns {Promise<string>}
  */
@@ -71,19 +66,12 @@ export async function translateText(text, sourceLang, targetLang, options = {}) 
  * Gemini AI Strict High-Precision Translation (Zero Hallucination)
  */
 async function translateWithGeminiStrict(text, sourceLang, targetLang, apiKey) {
-  const sourceName = LANG_NAMES[sourceLang] || sourceLang;
-  const targetName = LANG_NAMES[targetLang] || targetLang;
+  const sourceObj = getLanguage(sourceLang);
+  const targetObj = getLanguage(targetLang);
 
-  let styleGuide = '';
-  if (targetLang === 'th') {
-    styleGuide = 'Use polite particles like ครับ/ค่ะ where natural.';
-  } else if (targetLang === 'ko') {
-    styleGuide = 'Use polite, formal Korean (존댓말).';
-  } else if (targetLang === 'en') {
-    styleGuide = 'Use clear, natural, polite conversational English.';
-  } else if (targetLang === 'mn') {
-    styleGuide = 'Use polite, natural Mongolian conversational phrasing.';
-  }
+  const sourceName = sourceObj.prompt || sourceLang;
+  const targetName = targetObj.prompt || targetLang;
+  const styleGuide = targetObj.style || `Use clear, polite, natural ${targetName} conversational phrasing.`;
 
   const systemInstruction = `You are a strict, ultra-precise ${sourceName}-to-${targetName} real-time translator for video calls.
 CRITICAL RULES:
@@ -123,7 +111,9 @@ CRITICAL RULES:
  * Google Free Translate Strict Parser
  */
 async function translateWithGoogleFreeStrict(text, sourceLang, targetLang) {
-  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+  const sl = sourceLang === 'zh' ? 'zh-CN' : sourceLang;
+  const tl = targetLang === 'zh' ? 'zh-CN' : targetLang;
+  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(text)}`;
   
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Google Translate HTTP ${res.status}`);
